@@ -1,139 +1,52 @@
-const cookies = document.cookie.split('=');
-const token = cookies[cookies.length - 1];
+const COLUMNS = [
+    {label: 'ID', key: 'id'},
+    {label: 'Description', key: 'data'},
+    {label: 'Author', key: 'userID'},
+    {label: 'Image', key: 'image', type: 'image'},
+    {label: 'Likes', key: 'likeCount'},
+]
 
-function getAllPosts(){
-    fetch('http://127.0.0.1:8000/api/posts', {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization' : `Bearer ${token}`
-        }
-    })
-        .then( res => res.json())
-        .then( data => {
-            if(!data.msg) {
-                console.log(data)
-                data.forEach( el => {
-                    const li = document.createElement("li")
-                    const text = document.createTextNode(
-                        `id: ${el.id}, data: ${el.data}, user: ${el.userID}, image: ${el.image}, lkes: ${el.likeCount}`
-                    )
-                    li.appendChild(text)
-                    content.appendChild(li)
-                })
-            } else {
-                const p = document.createElement('p')
-                const statusContainer = document.querySelector("#status")
-                p.innerHTML = `${data.msg}`
-                statusContainer.appendChild(p)
-            }
-        })
+async function loadPosts() {
+    try {
+        renderTable(await api('/posts'), COLUMNS)
+    } catch (err) {
+        showStatus(err.message)
+    }
 }
 
-
-const content = document.querySelector("#content")
-
-document.querySelector('#postSubmitButton').addEventListener('click', (e) => {
-    e.preventDefault()
-    const data = document.querySelector("#descriptionInput").value
-    const imagelink = document.querySelector("#imageLinkInput").value
-    let tagsInput = document.querySelector("#tagsInput").value
-    tagsInput = tagsInput.split(" ")
-    fetch('http://127.0.0.1:8000/api/posts', {
+onSubmit('#createPostForm', async (form) => {
+    await api('/posts', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization' : `Bearer ${token}`
-        },
         body: JSON.stringify({
-            "userID": localStorage.getItem('user'),
-            "data": data,
-            "image": imagelink,
-            "tags": tagsInput
+            data: form.data.value,
+            image: form.image.value,
+            tags: form.tags.value.split(' ').filter(Boolean),
         })
     })
-        .then( res => res.json())
-        .then( data => {
-            if(!data.msg) {
-                const li = document.createElement("li")
-                const text = document.createTextNode(
-                    `id: ${data.id}, data: ${data.data}, user: ${data.userID}, image: ${data.image}, lkes: ${data.likeCount}`
-                )
-                li.appendChild(text)
-                content.appendChild(li)
-            } else {
-                const p = document.createElement('p')
-                const statusContainer = document.querySelector("#status")
-                p.innerHTML = `${data.msg}`
-                statusContainer.appendChild(p)
-            }
-        })
+    form.reset()
+    showStatus('Post created.', 'success')
+    await loadPosts()
 })
 
-document.querySelector("#postEditButton").addEventListener('click', (e) => {
-    e.preventDefault()
-    const postID = document.querySelector("#idInputEdit").value
-    const descriptionInputEdit = document.querySelector("#descriptionInputEdit").value
-    const imageLinkInputEdit = document.querySelector("#imageLinkInputEdit").value
-    let tagsInputEdit = document.querySelector("#tagsInputEdit").value
-    tagsInputEdit = tagsInputEdit.split(" ")
-    fetch(`http://127.0.0.1:8000/api/posts/${postID}`, {
+onSubmit('#editPostForm', async (form) => {
+    await api(`/posts/${form.postId.value}`, {
         method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization' : `Bearer ${token}`
-        },
         body: JSON.stringify({
-            "data": descriptionInputEdit,
-            "image": imageLinkInputEdit,
-            "tags" : tagsInputEdit
+            data: form.data.value,
+            image: form.image.value,
+            tags: form.tags.value.split(' ').filter(Boolean),
         })
     })
-        .then( res => res.json())
-        .then( data => {
-            if(!data.msg) {
-                content.innerHTML = ''
-                document.querySelector("#idInputEdit").value = ""
-                document.querySelector("#descriptionInputEdit").value = ""
-                document.querySelector("#imageLinkInputEdit").value = ""
-                document.querySelector("#tagsInputEdit").value = ""
-                getAllPosts()
-            } else {
-                const p = document.createElement('p')
-                const statusContainer = document.querySelector("#status")
-                p.innerHTML = `${data.msg}`
-                statusContainer.appendChild(p)
-            }
-        })
+    form.reset()
+    showStatus('Post updated.', 'success')
+    await loadPosts()
 })
 
-document.querySelector("#deletePostButton").addEventListener('click', e => {
-    e.preventDefault()
-    const idValue = document.querySelector('#deletePostInput').value;
-
-    fetch(`http://127.0.0.1:8000/api/posts/${idValue}`, {
-        method: 'Delete',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization' : `Bearer ${token}`
-        }
-    })
-        .then( res => res.json())
-        .then( data => {
-            if(!data.msg) {
-                content.innerHTML = ''
-                document.querySelector('#deletePostInput').value = "";
-                getAllPosts()
-            } else {
-                const p = document.createElement('p')
-                const statusContainer = document.querySelector("#status")
-                p.innerHTML = `${data.msg}`
-                statusContainer.appendChild(p)
-            }
-        })
-
-
+onSubmit('#deletePostForm', async (form) => {
+    await api(`/posts/${form.postId.value}`, {method: 'DELETE'})
+    form.reset()
+    showStatus('Post deleted.', 'success')
+    await loadPosts()
 })
-window.addEventListener('load', getAllPosts);
 
-
+window.addEventListener('DOMContentLoaded', loadPosts)

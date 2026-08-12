@@ -1,129 +1,46 @@
-const cookies = document.cookie.split('=');
-const token = cookies[cookies.length - 1];
+const COLUMNS = [
+    {label: 'ID', key: 'id'},
+    {label: 'Content', key: 'data'},
+    {label: 'Author', key: 'userID'},
+    {label: 'Post', key: 'postID'},
+]
 
-function getAllComments(){
-    fetch('http://127.0.0.1:8000/api/comments', {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization' : `Bearer ${token}`
-        }
-    })
-        .then( res => res.json())
-        .then( data => {
-            if(!data.msg) {
-                data.forEach( el => {
-
-                    const li = document.createElement("li")
-                    const text = document.createTextNode(
-                        `id: ${el.id}, data: ${el.data}, user: ${el.userID}, postID: ${el.postID}`
-                    )
-                    li.appendChild(text)
-                    content.appendChild(li)
-                })
-            } else {
-                const p = document.createElement('p')
-                const statusContainer = document.querySelector("#status")
-                p.innerHTML = `${data.msg}`
-                statusContainer.appendChild(p)
-            }
-        })
+async function loadComments() {
+    try {
+        renderTable(await api('/comments'), COLUMNS)
+    } catch (err) {
+        showStatus(err.message)
+    }
 }
 
-const content = document.querySelector("#content")
-
-document.querySelector('#commentSubmitButton').addEventListener('click', (e) => {
-    e.preventDefault()
-    const contentInput = document.querySelector("#contentInput").value
-    const postIdInput = document.querySelector("#postIdInput").value
-    fetch('http://127.0.0.1:8000/api/comments', {
+onSubmit('#createCommentForm', async (form) => {
+    await api('/comments', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization' : `Bearer ${token}`
-        },
         body: JSON.stringify({
-            "userID": localStorage.getItem('user'),
-            "data": contentInput,
-            "postID": postIdInput
+            data: form.data.value,
+            postID: form.postID.value,
         })
     })
-        .then( res => res.json())
-        .then( data => {
-            if(!data.msg) {
-                const li = document.createElement("li")
-                const text = document.createTextNode(
-                    `id: ${data.id}, data: ${data.data}, user: ${data.userID}, postID: ${data.postID}`
-                )
-                li.appendChild(text)
-                content.appendChild(li)
-            } else {
-                const p = document.createElement('p')
-                const statusContainer = document.querySelector("#status")
-                p.innerHTML = `${data.msg}`
-                statusContainer.appendChild(p)
-            }
-        })
+    form.reset()
+    showStatus('Comment created.', 'success')
+    await loadComments()
 })
 
-document.querySelector("#editCommentButton").addEventListener('click', (e) => {
-    e.preventDefault()
-
-    const commentIdInput = document.querySelector("#commentIdInput").value
-    const bodyInput = document.querySelector("#bodyInput").value
-    fetch(`http://127.0.0.1:8000/api/comments/${commentIdInput}`, {
+onSubmit('#editCommentForm', async (form) => {
+    await api(`/comments/${form.commentId.value}`, {
         method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization' : `Bearer ${token}`
-        },
-        body: JSON.stringify({
-            "data": bodyInput,
-        })
+        body: JSON.stringify({data: form.data.value})
     })
-        .then( res => res.json())
-        .then( data => {
-            if(!data.msg) {
-                content.innerHTML = ''
-                document.querySelector("#commentIdInput").value = ""
-                document.querySelector("#bodyInput").value = ""
-                getAllComments()
-            } else {
-                const p = document.createElement('p')
-                const statusContainer = document.querySelector("#status")
-                p.innerHTML = `${data.msg}`
-                statusContainer.appendChild(p)
-            }
-        })
+    form.reset()
+    showStatus('Comment updated.', 'success')
+    await loadComments()
 })
 
-document.querySelector("#deleteCommentButton").addEventListener('click', e => {
-    e.preventDefault()
-    const idValue = document.querySelector('#deleteCommentInput').value;
-
-    fetch(`http://127.0.0.1:8000/api/comments/${idValue}`, {
-        method: 'Delete',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization' : `Bearer ${token}`
-        }
-    })
-        .then( res => res.json())
-        .then( data => {
-            if(!data.msg) {
-                content.innerHTML = ''
-                document.querySelector('#deleteCommentInput').value = "";
-                getAllComments()
-            } else {
-                const p = document.createElement('p')
-                const statusContainer = document.querySelector("#status")
-                p.innerHTML = `${data.msg}`
-                statusContainer.appendChild(p)
-            }
-        })
-
-
+onSubmit('#deleteCommentForm', async (form) => {
+    await api(`/comments/${form.commentId.value}`, {method: 'DELETE'})
+    form.reset()
+    showStatus('Comment deleted.', 'success')
+    await loadComments()
 })
-window.addEventListener('load', getAllComments);
 
-
+window.addEventListener('DOMContentLoaded', loadComments)

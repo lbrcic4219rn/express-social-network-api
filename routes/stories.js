@@ -1,4 +1,4 @@
-const {Comment} = require('../models');
+const {Story} = require('../models');
 const joi = require("joi");
 const apiRouter = require('../middleware/api-router');
 const requireOwner = require('../middleware/ownership');
@@ -6,8 +6,8 @@ const {idParam, validateParams, validateBody, updateEntity, destroyEntity} = req
 
 const route = apiRouter();
 
-route.get('/comments', (req, res) => {
-    Comment.findAll()
+route.get('/stories', (req, res) => {
+    Story.findAll()
         .then(
             rows => res.json(rows)
         )
@@ -19,40 +19,19 @@ route.get('/comments', (req, res) => {
         )
 })
 
-route.get('/comments/:id', (req, res) => {
+route.get('/stories/:id', (req, res) => {
     const schema = joi.object({
-        id: joi.number().min(1).required()
+        id: joi.number().min(1).required(),
     })
-    const {error} = schema.validate({id: req.params.id})
+    const {error} = schema.validate({
+        id: req.params.id,
+    })
     if (error)
         return res.status(400).json({msg: error.message})
-    Comment.findOne({
+
+    Story.findOne({
         where: {
             id: req.params.id,
-        }
-    })
-        .then(
-            rows => res.json(rows)
-        )
-        .catch(
-            err => {
-                console.error(err);
-                res.status(500).json({msg: "internal server error"})
-            }
-        )
-})
-
-route.get('/comments/posts/:postID', (req, res) => {
-    const schema = joi.object({
-        id: joi.number().min(1).required()
-    })
-    const {error} = schema.validate({id: req.params.postID})
-    if (error)
-        return res.status(400).json({msg: error.message})
-
-    Comment.findAll({
-        where: {
-            postID: req.params.postID,
         },
     })
         .then(
@@ -66,23 +45,42 @@ route.get('/comments/posts/:postID', (req, res) => {
         )
 })
 
-route.post('/comments', async (req, res) => {
+route.get('/stories/users/:userID', (req, res) => {
     const schema = joi.object({
-        userID: joi.string().required(),
-        postID: joi.number().min(1).required(),
-        data: joi.string().required(),
+        id: joi.string().required(),
     })
     const {error} = schema.validate({
-        userID: req.usr.username,
-        postID: req.body.postID,
-        data: req.body.data
+        id: req.params.userID,
     })
     if (error)
         return res.status(400).json({msg: error.message})
+    Story.findAll({
+        where: {
+            userID: req.params.userID,
+        },
+    })
+        .then(
+            rows => res.json(rows)
+        )
+        .catch(
+            err => {
+                console.error(err);
+                res.status(500).json({msg: "internal server error"})
+            }
+        )
+})
 
-    Comment.create({
+route.post('/stories', (req, res) => {
+    const schema = joi.object({
+        data: joi.string().required(),
+    })
+    const {error} = schema.validate({
+        data: req.body.data,
+    })
+    if (error)
+        return res.status(400).json({msg: error.message})
+    Story.create({
         userID: req.usr.username,
-        postID: req.body.postID,
         data: req.body.data,
     })
         .then(
@@ -96,15 +94,15 @@ route.post('/comments', async (req, res) => {
         )
 })
 
-route.put('/comments/:id',
+route.put('/stories/:id',
     validateParams(idParam),
     validateBody(joi.object({data: joi.string().required()})),
-    requireOwner(Comment),
+    requireOwner(Story),
     updateEntity(['data']))
 
-route.delete('/comments/:id',
+route.delete('/stories/:id',
     validateParams(idParam),
-    requireOwner(Comment),
+    requireOwner(Story),
     destroyEntity)
 
 module.exports = route;

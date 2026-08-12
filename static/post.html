@@ -2,79 +2,89 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Posts</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%92%AC</text></svg>">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+          crossorigin="anonymous">
 </head>
-<body>
-<div class="container">
-    <h1>Post page</h1>
-    <a href="index.html">Home page</a>
-    <div id="status"></div>
-    <hr>
-    <div>
-        <h3>Create Post</h3>
-        <form>
-            <div class="form-group mb-3">
-                <label for="descriptionInput">Description</label>
-                <input type="text" name="descriptionInput" id="descriptionInput" class="form-control">
+<body class="bg-body-tertiary">
+<nav id="nav" class="navbar navbar-expand navbar-dark bg-dark mb-4"></nav>
+<main class="container pb-5">
+    <h1 class="h3 mb-1">Posts</h1>
+    <p class="text-secondary">Create, edit and remove posts, and browse everything that exists.</p>
+    <div id="status" aria-live="polite"></div>
+    <div class="row g-4">
+        <div class="col-lg-5">
+    <div class="card mb-3">
+        <div class="card-header">Create post</div>
+        <div class="card-body">
+            <form id="createPostForm">
+            <div class="mb-3">
+                <label for="descriptionInput" class="form-label">Description</label>
+                <input type="text" id="descriptionInput" name="data" class="form-control" required>
             </div>
-            <div class="form-group mb-3">
-                <label for="imageLinkInput">Image link</label>
-                <input type="text" name="imageLinkInput" id="imageLinkInput" class="form-control">
+            <div class="mb-3">
+                <label for="imageLinkInput" class="form-label">Image link</label>
+                <input type="url" id="imageLinkInput" name="image" class="form-control" required>
             </div>
-            <div class="form-group mb-3">
-                <label for="tagsInput">Tags</label>
-                <input type="text" name="imageLinkInput" id="tagsInput" class="form-control">
+            <div class="mb-3">
+                <label for="tagsInput" class="form-label">Tags</label>
+                <input type="text" id="tagsInput" name="tags" class="form-control" required placeholder="space separated">
             </div>
-            <button id="postSubmitButton" class="btn btn-primary">Submit post</button>
-        </form>
+                <button type="submit" class="btn btn-primary">Submit post</button>
+            </form>
+        </div>
     </div>
-    <hr>
-    <div>
-        <h3>Edit Post</h3>
-        <form>
-            <div class="form-group mb-3">
-                <label for="idInputEdit">Post id</label>
-                <input type="text" name="descriptionInput" id="idInputEdit" class="form-control">
+    <div class="card mb-3">
+        <div class="card-header">Edit post</div>
+        <div class="card-body">
+            <form id="editPostForm">
+            <div class="mb-3">
+                <label for="idInputEdit" class="form-label">Post ID</label>
+                <input type="number" id="idInputEdit" name="postId" class="form-control" required>
             </div>
-            <div class="form-group mb-3">
-                <label for="descriptionInputEdit">Description</label>
-                <input type="text" name="descriptionInput" id="descriptionInputEdit" class="form-control">
+            <div class="mb-3">
+                <label for="descriptionInputEdit" class="form-label">Description</label>
+                <input type="text" id="descriptionInputEdit" name="data" class="form-control" required>
             </div>
-            <div class="form-group mb-3">
-                <label for="imageLinkInputEdit">Image link</label>
-                <input type="text" name="imageLinkInput" id="imageLinkInputEdit" class="form-control">
+            <div class="mb-3">
+                <label for="imageLinkInputEdit" class="form-label">Image link</label>
+                <input type="url" id="imageLinkInputEdit" name="image" class="form-control" required>
             </div>
-            <div class="form-group mb-3">
-                <label for="tagsInput">Tags</label>
-                <input type="text" name="imageLinkInput" id="tagsInputEdit" class="form-control">
+            <div class="mb-3">
+                <label for="tagsInputEdit" class="form-label">Tags</label>
+                <input type="text" id="tagsInputEdit" name="tags" class="form-control" required placeholder="space separated">
             </div>
-            <button id="postEditButton" class="btn btn-primary">Edit post</button>
-        </form>
+                <button type="submit" class="btn btn-primary">Save changes</button>
+            </form>
+        </div>
     </div>
-    <hr>
-    <div>
-        <h3>Delete Post</h3>
-        <form>
-            <div class="form-group mb-3">
-                <label for="deletePostInput">Post ID</label>
-                <input type="text" name="imageLinkInput" id="deletePostInput" class="form-control">
+    <div class="card mb-3">
+        <div class="card-header">Delete post</div>
+        <div class="card-body">
+            <form id="deletePostForm">
+            <div class="mb-3">
+                <label for="deletePostInput" class="form-label">Post ID</label>
+                <input type="number" id="deletePostInput" name="postId" class="form-control" required>
             </div>
-            <button id="deletePostButton" class="btn btn-primary">Delete story</button>
-        </form>
+                <button type="submit" class="btn btn-danger">Delete post</button>
+            </form>
+        </div>
     </div>
-    <hr>
-    <div >
-        <ul id="content">
-
-        </ul>
+        </div>
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header">All posts</div>
+                <div class="card-body">
+                    <div id="content"></div>
+                </div>
+            </div>
+        </div>
     </div>
-    <hr>
-
-</div>
+</main>
+<script src="./scripts/common.js"></script>
 <script src="./scripts/post.js"></script>
 </body>
 </html>

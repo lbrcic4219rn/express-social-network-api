@@ -2,67 +2,77 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Comments</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%92%AC</text></svg>">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+          crossorigin="anonymous">
 </head>
-<body>
-<div class="container">
-    <h1>Comments page</h1>
-    <a href="index.html">Home page</a>
-    <div id="status"></div>
-    <hr>
-    <div>
-        <h3>Create comment</h3>
-        <form>
-            <div class="form-group mb-3">
-                <label for="contentInput">content</label>
-                <input type="text" name="descriptionInput" id="contentInput" class="form-control">
+<body class="bg-body-tertiary">
+<nav id="nav" class="navbar navbar-expand navbar-dark bg-dark mb-4"></nav>
+<main class="container pb-5">
+    <h1 class="h3 mb-1">Comments</h1>
+    <p class="text-secondary">Comments belong to a post and to their author.</p>
+    <div id="status" aria-live="polite"></div>
+    <div class="row g-4">
+        <div class="col-lg-5">
+    <div class="card mb-3">
+        <div class="card-header">Create comment</div>
+        <div class="card-body">
+            <form id="createCommentForm">
+            <div class="mb-3">
+                <label for="contentInput" class="form-label">Content</label>
+                <input type="text" id="contentInput" name="data" class="form-control" required>
             </div>
-            <div class="form-group mb-3">
-                <label for="postIdInput">Post ID</label>
-                <input type="text" name="imageLinkInput" id="postIdInput" class="form-control">
+            <div class="mb-3">
+                <label for="postIdInput" class="form-label">Post ID</label>
+                <input type="number" id="postIdInput" name="postID" class="form-control" required>
             </div>
-            <button id="commentSubmitButton" class="btn btn-primary">Submit comment</button>
-        </form>
+                <button type="submit" class="btn btn-primary">Submit comment</button>
+            </form>
+        </div>
     </div>
-    <hr>
-    <div>
-        <h3>Edit comment</h3>
-        <form>
-            <div class="form-group mb-3">
-                <label for="commentIdInput">CommentID</label>
-                <input type="text" name="descriptionInput" id="commentIdInput" class="form-control">
+    <div class="card mb-3">
+        <div class="card-header">Edit comment</div>
+        <div class="card-body">
+            <form id="editCommentForm">
+            <div class="mb-3">
+                <label for="commentIdInput" class="form-label">Comment ID</label>
+                <input type="number" id="commentIdInput" name="commentId" class="form-control" required>
             </div>
-            <div class="form-group mb-3">
-                <label for="bodyInput">new body</label>
-                <input type="text" name="descriptionInput" id="bodyInput" class="form-control">
+            <div class="mb-3">
+                <label for="bodyInput" class="form-label">New content</label>
+                <input type="text" id="bodyInput" name="data" class="form-control" required>
             </div>
-            <button id="editCommentButton" class="btn btn-primary">Edit comment</button>
-        </form>
+                <button type="submit" class="btn btn-primary">Save changes</button>
+            </form>
+        </div>
     </div>
-    <hr>
-    <div>
-        <h3>Delete Comment</h3>
-        <form>
-            <div class="form-group mb-3">
-                <label for="deleteCommentInput">Post ID</label>
-                <input type="text" name="imageLinkInput" id="deleteCommentInput" class="form-control">
+    <div class="card mb-3">
+        <div class="card-header">Delete comment</div>
+        <div class="card-body">
+            <form id="deleteCommentForm">
+            <div class="mb-3">
+                <label for="deleteCommentInput" class="form-label">Comment ID</label>
+                <input type="number" id="deleteCommentInput" name="commentId" class="form-control" required>
             </div>
-            <button id="deleteCommentButton" class="btn btn-primary">Delete Comment</button>
-        </form>
+                <button type="submit" class="btn btn-danger">Delete comment</button>
+            </form>
+        </div>
     </div>
-    <hr>
-    <div >
-        <ul id="content">
-
-        </ul>
+        </div>
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header">All comments</div>
+                <div class="card-body">
+                    <div id="content"></div>
+                </div>
+            </div>
+        </div>
     </div>
-    <hr>
-
-</div>
+</main>
+<script src="./scripts/common.js"></script>
 <script src="./scripts/comment.js"></script>
 </body>
 </html>

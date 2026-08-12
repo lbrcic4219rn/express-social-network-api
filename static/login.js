@@ -1,39 +1,17 @@
-const handleLogin = (e) => {
-    e.preventDefault()
+onSubmit('#loginForm', async (form) => {
+    const username = form.username.value
 
-    const username = document.querySelector('#usernameInput').value
-    const password = document.querySelector('#passwordInput').value
-
-    console.log(username);
-    console.log(password);
-
-    fetch('http://127.0.0.1:9000/login', {
+    const res = await fetch(`${AUTH_URL}/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            username: username,
-            password: password 
-        })
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password: form.password.value})
     })
-        .then( res => res.json())
-        .then( data => {
-            if(!data.msg) {
-                localStorage.setItem("user", username)
-                document.cookie = `token=${data.token};SameSiite=Lax`
-                window.location.href = '/index.html'
-            } else {
-                const p = document.createElement('p')
-                const statusContainer = document.querySelector("#status")
-                console.log(data);
-                p.innerHTML = `${data.msg}`
-                statusContainer.appendChild(p)
-            }
-        }) 
-}
+    const data = await res.json().catch(() => ({}))
 
+    if (!res.ok || !data.token)
+        throw new Error(data.msg || 'could not log in')
 
-const loginButton = document.querySelector("#loginButton")
-loginButton.addEventListener('click', handleLogin)
-
-
-
+    localStorage.setItem('user', username)
+    setToken(data.token)
+    window.location.href = '/index.html'
+})

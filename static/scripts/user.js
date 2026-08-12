@@ -1,97 +1,36 @@
-const cookies = document.cookie.split('=');
-const token = cookies[cookies.length - 1];
+const COLUMNS = [
+    {label: 'Username', key: 'username'},
+    {label: 'Bio', key: 'bio'},
+    {label: 'Profile picture', key: 'profilePicture', type: 'image'},
+    {label: 'Admin', key: 'admin'},
+]
 
-function getAllUsers(){
-    fetch('http://127.0.0.1:8000/api/users', {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization' : `Bearer ${token}`
-        }
-    })
-        .then( res => res.json())
-        .then( data => {
-            if(!data.msg) {
-                data.forEach( el => {
-
-                    const li = document.createElement("li")
-                    const text = document.createTextNode(
-                        `id: ${el.username}, bio: ${el.bio}, profile picture: ${el.profilePicture}, admin: ${el.admin}`
-                    )
-                    li.appendChild(text)
-                    content.appendChild(li)
-                })
-            } else {
-                const p = document.createElement('p')
-                const statusContainer = document.querySelector("#status")
-                p.innerHTML = `${data.msg}`
-                statusContainer.appendChild(p)
-            }
-        })
+async function loadUsers() {
+    try {
+        renderTable(await api('/users'), COLUMNS)
+    } catch (err) {
+        showStatus(err.message)
+    }
 }
 
-const content = document.querySelector("#content")
-
-document.querySelector("#userEditButton").addEventListener('click', (e) => {
-    e.preventDefault()
-
-
-    const bioInputEdit = document.querySelector("#bioInputEdit").value
-    const profilePictureInputEdit = document.querySelector("#profilePictureInputEdit").value
-    fetch(`http://127.0.0.1:8000/api/users/${localStorage.getItem('user')}`, {
+onSubmit('#editUserForm', async (form) => {
+    await api(`/users/${localStorage.getItem('user')}`, {
         method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization' : `Bearer ${token}`
-        },
         body: JSON.stringify({
-            "bio": bioInputEdit,
-            "profilePicture": profilePictureInputEdit
+            bio: form.bio.value,
+            profilePicture: form.profilePicture.value,
         })
     })
-        .then( res => res.json())
-        .then( data => {
-            if(!data.msg) {
-                content.innerHTML = ''
-                document.querySelector("#bioInputEdit").value = ""
-                document.querySelector("#profilePictureInputEdit").value = ""
-                getAllUsers()
-            } else {
-                const p = document.createElement('p')
-                const statusContainer = document.querySelector("#status")
-                p.innerHTML = `${data.msg}`
-                statusContainer.appendChild(p)
-            }
-        })
+    form.reset()
+    showStatus('Profile updated.', 'success')
+    await loadUsers()
 })
 
-document.querySelector("#deleteUserButton").addEventListener('click', e => {
-    e.preventDefault()
-    const username = document.querySelector('#username').value;
-
-    fetch(`http://127.0.0.1:8000/api/users/${username}`, {
-        method: 'Delete',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization' : `Bearer ${token}`
-        }
-    })
-        .then( res => res.json())
-        .then( data => {
-            if(!data.msg) {
-                content.innerHTML = ''
-                document.querySelector('#username').value = "";
-                getAllUsers()
-            } else {
-                const p = document.createElement('p')
-                const statusContainer = document.querySelector("#status")
-                p.innerHTML = `${data.msg}`
-                statusContainer.appendChild(p)
-            }
-        })
-
-
+onSubmit('#deleteUserForm', async (form) => {
+    await api(`/users/${form.username.value}`, {method: 'DELETE'})
+    form.reset()
+    showStatus('User deleted.', 'success')
+    await loadUsers()
 })
-window.addEventListener('load', getAllUsers);
 
-
+window.addEventListener('DOMContentLoaded', loadUsers)

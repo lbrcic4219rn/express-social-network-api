@@ -1,40 +1,20 @@
-const handleRegister = (e) => {
-    e.preventDefault()
+onSubmit('#registerForm', async (form) => {
+    const username = form.username.value
 
-    const username = document.querySelector('#usernameInput').value
-    const password = document.querySelector('#passwordInput').value
-    const password2 = document.querySelector('#passwordInput2').value
+    if (form.password.value !== form.password2.value)
+        throw new Error('passwords do not match')
 
-    console.log(username);
-    console.log(password);
-
-    fetch('http://127.0.0.1:9000/register', {
+    const res = await fetch(`${AUTH_URL}/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            username: username,
-            password: password,
-            admin: true,
-        })
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password: form.password.value})
     })
-        .then( res => res.json())
-        .then( data => {
-            if(!data.msg) {
-                document.cookie = `token=${data.token};SameSiite=Lax`
-                window.location.href = '/'
-            } else { 
-                const p = document.createElement('p')
-                const statusContainer = document.querySelector("#status")
-                console.log(data);
-                p.innerHTML = `${data.msg}`
-                statusContainer.appendChild(p)
-            }
-        }) 
-}
+    const data = await res.json().catch(() => ({}))
 
+    if (!res.ok || !data.token)
+        throw new Error(data.msg || 'could not register')
 
-const loginButton = document.querySelector("#registerButton")
-loginButton.addEventListener('click', handleRegister)
-
-
-
+    localStorage.setItem('user', username)
+    setToken(data.token)
+    window.location.href = '/index.html'
+})

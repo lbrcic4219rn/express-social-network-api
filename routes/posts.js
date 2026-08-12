@@ -1,329 +1,248 @@
-const { sequelize, Post, Tag, Post_Tag, User, Comment} = require('../models');
-const express = require('express');
-const post_tag = require('../models/post_tag');
-const jwt = require("jsonwebtoken");
+const {Post, Tag, Post_Tag, Like} = require('../models');
 const joi = require("joi");
+const apiRouter = require('../middleware/api-router');
+const requireOwner = require('../middleware/ownership');
+const {idParam, validateParams, validateBody, destroyEntity} = require('../middleware/crud');
 
-const route = express.Router();
-route.use(express.json());
-route.use(express.urlencoded({ extended: true }))
+const route = apiRouter();
 
-function authToken(req, res, next){
-    if(req.method == "GET"){
-        next()
-        return
-    }
-    const authHeader = req.headers['authorization']
-    if(authHeader == undefined) return res.status(401).json({ msg:"not authorized" })
-    const token = authHeader && authHeader.split(' ')[1]
-
-
-    if(token === null) return res.status(401).json({ msg:"not authorized" })
-
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, usr) => {
-        if (err) return res.status(403).json({ msg: err })
-        req.usr = usr;
-    })
-    next()
-}
-
-route.use(authToken)
+const postBody = joi.object({
+    data: joi.string().required(),
+    image: joi.string().required(),
+    tags: joi.array().items(joi.string()).required(),
+});
 
 route.get('/posts', (req, res) => {
     Post.findAll()
-        .then( 
+        .then(
             rows => res.json(rows)
         )
-        .catch( 
-            err => res.status(500).json(err)
-        ) 
+        .catch(
+            err => {
+                console.error(err);
+                res.status(500).json({msg: "internal server error"})
+            }
+        )
 })
 
 route.get('/posts/:id', (req, res) => {
     const schema = joi.object({
         id: joi.number().min(1).required(),
     })
-    const {error, value} = schema.validate({
+    const {error} = schema.validate({
         id: req.params.id,
     })
-    if(error)
-        res.status(400).json(error)
+    if (error)
+        return res.status(400).json({msg: error.message})
     Post.findOne({
         where: {
             id: req.params.id,
         }
     })
-        .then( 
+        .then(
             rows => res.json(rows)
         )
-        .catch( 
-            err => res.status(500).json(err)
-        ) 
+        .catch(
+            err => {
+                console.error(err);
+                res.status(500).json({msg: "internal server error"})
+            }
+        )
 })
 
 route.get('/posts/users/:username', (req, res) => {
     const schema = joi.object({
         id: joi.string().required(),
     })
-    const {error, value} = schema.validate({
+    const {error} = schema.validate({
         id: req.params.username,
     })
-    if(error)
-        res.status(400).json(error)
+    if (error)
+        return res.status(400).json({msg: error.message})
     Post.findAll({
         where: {
             userID: req.params.username,
         },
     })
-        .then( 
+        .then(
             rows => res.json(rows)
         )
-        .catch( 
-            err => res.status(500).json(err)
-        ) 
+        .catch(
+            err => {
+                console.error(err);
+                res.status(500).json({msg: "internal server error"})
+            }
+        )
 })
 
-route.post('/posts', async (req, res) => {
-    const schema = joi.object({
-        data: joi.string().required(),
-        image: joi.string().required(),
-        tags: joi.required()
-    })
-    const {error, value} = schema.validate({
-        data: req.body.data,
-        image: req.body.image,
-        tags: req.body.tags,
-    })
-    if(error)
-        res.status(400).json(error)
-    try{
-        //Pravljenje tagova u koliko ne postoje
+route.post('/posts', validateBody(postBody), async (req, res) => {
+    try {
         const tags = req.body.tags;
         const newTags = [];
-        for( let tag of tags){
+        for (let tag of tags) {
             let foundTag = await Tag.findOne({
                 where: {
                     tagName: tag
                 }
             })
-            if(foundTag === null){
-                 foundTag = await Tag.create({
+            if (foundTag === null) {
+                foundTag = await Tag.create({
                     tagName: tag
                 })
             }
             newTags.push(foundTag)
         }
 
-        //kreiranje novog Posta
-        newPost = await Post.create({
+        const newPost = await Post.create({
             userID: req.usr.username,
             data: req.body.data,
             likeCount: 0,
             image: req.body.image
         })
 
-        //Dodavanje u medju tabelu postova i tagova 
-        for(let tag of newTags){
-            console.log( "TAG", tag.dataValues.tagName);
+        for (let tag of newTags) {
             await Post_Tag.create({
-                postID: newPost.dataValues.id,
-                tagName: tag.dataValues.tagName,
+                postID: newPost.get('id'),
+                tagName: tag.get('tagName'),
             })
         }
         res.json(newPost)
-    }
-    catch (err) { 
-        console.log("error", err)
-        res.status(500).json(err)
+    } catch (err) {
+        console.error(err)
+        res.status(500).json({msg: "internal server error"})
     }
 })
 
-route.put('/posts/:id', async (req, res) => {
-    const schema = joi.object({
-        id: joi.number().min(1).required(),
-        data: joi.string().required(),
-        image: joi.string().required(),
-        tags: joi.required()
-    })
-    const {error, value} = schema.validate({
-        id: req.params.id,
-        data: req.body.data,
-        image: req.body.image,
-        tags: req.body.tags,
-    })
-    if(error)
-        res.status(400).json(error)
-    try{
-        let user = await User.findOne({
-            where: {
-                username: req.usr.username,
-            }
-        })
-        //getujemo post
-        const oldPost = await Post.findOne({
-            where: {
-                id: req.params.id,
-            }
-        })
+route.put('/posts/:id',
+    validateParams(idParam),
+    validateBody(postBody),
+    requireOwner(Post),
+    async (req, res) => {
+        try {
+            const oldPost = req.entity
 
-        if (!(user.dataValues.admin || (oldPost.dataValues.userID === req.usr.username))) {
-            return res.status(401).json({ msg:"not authorized" })
-        }
-
-
-        //getujemo sve tagove koje imamo sacuvane u tablei sa postovima i tagovima  
-        let oldTags = await Post_Tag.findAll({
-            where: {
-                postID: req.params.id
-            }
-        })
-        oldTags = oldTags.map( (el) => {
-            return el.dataValues.tagName
-        })
-        
-        //brisanje starih veza
-        const newTags = req.body.tags;
-        for(let tag of oldTags) {
-            const postTag = await Post_Tag.findOne({
+            const oldLinks = await Post_Tag.findAll({
                 where: {
+                    postID: req.params.id
+                }
+            })
+            const oldTags = oldLinks.map(el => el.get('tagName'))
+
+            const newTags = req.body.tags;
+            for (let tag of oldTags) {
+                const postTag = await Post_Tag.findOne({
+                    where: {
+                        postID: req.params.id,
+                        tagName: tag
+                    }
+                })
+                await postTag.destroy()
+            }
+
+            for (let tag of newTags) {
+                let foundTag = await Tag.findOne({
+                    where: {
+                        tagName: tag
+                    }
+                })
+                if (foundTag === null) {
+                    foundTag = await Tag.create({
+                        tagName: tag
+                    })
+                }
+                await Post_Tag.create({
                     postID: req.params.id,
-                    tagName: tag
-                }
-            })
-            await postTag.destroy()
-        }
-        //Dodavanje novih veza
-        for( let tag of newTags){
-            let foundTag = await Tag.findOne({
-                where: {
-                    tagName: tag
-                }
-            })
-            if(foundTag === null){
-                 foundTag = await Tag.create({
-                    tagName: tag
+                    tagName: tag,
                 })
             }
-            await Post_Tag.create({
-                postID: req.params.id,
-                tagName: tag,
-            })
+
+            oldPost.set('data', req.body.data)
+            oldPost.set('image', req.body.image)
+
+            const savedPost = await oldPost.save()
+
+            res.json(savedPost)
+        } catch (err) {
+            console.error(err)
+            res.status(500).json({msg: "internal server error"})
         }
-
-        oldPost.data = req.body.data
-        oldPost.image = req.body.image
-        
-        savedPost = await oldPost.save()
-
-        res.json(savedPost)
-    }
-    catch (err) { 
-        console.log("error", err)
-        res.status(500).json(err)
-    }   
-})
+    })
 
 route.post('/posts/like/:id', async (req, res) => {
     const schema = joi.object({
         id: joi.number().min(1).required(),
     })
-    const {error, value} = schema.validate({
+    const {error} = schema.validate({
         id: req.params.id,
     })
-    if(error)
-        res.status(400).json(error)
-    try{
+    if (error)
+        return res.status(400).json({msg: error.message})
+    try {
         const oldPost = await Post.findOne({
             where: {
                 id: req.params.id,
             }
         })
+        if (oldPost === null)
+            return res.status(404).json({msg: "post not found"})
 
-        oldPost.likeCount += 1         
-        savedPost = await oldPost.save()
+        const [like, created] = await Like.findOrCreate({
+            where: {
+                postID: oldPost.get('id'),
+                userID: req.usr.username,
+            }
+        })
+        if (!created)
+            return res.status(409).json({msg: "already liked"})
+
+        oldPost.set('likeCount', await Like.count({where: {postID: oldPost.get('id')}}))
+        const savedPost = await oldPost.save()
         res.json(savedPost)
+    } catch (err) {
+        console.error(err)
+        res.status(500).json({msg: "internal server error"})
     }
-    catch (err) { 
-        console.log("error", err)
-        res.status(500).json(err)
-    }   
 })
-
 
 route.post('/posts/unlike/:id', async (req, res) => {
     const schema = joi.object({
         id: joi.number().min(1).required(),
     })
-    const {error, value} = schema.validate({
+    const {error} = schema.validate({
         id: req.params.id,
     })
-    if(error)
-        res.status(400).json(error)
-    try{
+    if (error)
+        return res.status(400).json({msg: error.message})
+    try {
         const oldPost = await Post.findOne({
             where: {
                 id: req.params.id,
             }
         })
+        if (oldPost === null)
+            return res.status(404).json({msg: "post not found"})
 
-        oldPost.likeCount -= 1         
-        savedPost = await oldPost.save()
+        const removed = await Like.destroy({
+            where: {
+                postID: oldPost.get('id'),
+                userID: req.usr.username,
+            }
+        })
+        if (removed === 0)
+            return res.status(409).json({msg: "not liked yet"})
+
+        oldPost.set('likeCount', await Like.count({where: {postID: oldPost.get('id')}}))
+        const savedPost = await oldPost.save()
         res.json(savedPost)
+    } catch (err) {
+        console.error(err)
+        res.status(500).json({msg: "internal server error"})
     }
-    catch (err) { 
-        console.log("error", err)
-        res.status(500).json(err)
-    }   
 })
 
-
-route.delete('/posts/:id', async (req, res) => {
-    const schema = joi.object({
-        id: joi.number().min(1).required(),
-    })
-    const {error, value} = schema.validate({
-        id: req.params.id,
-    })
-    if(error)
-        res.status(400).json(error)
-    try {
-        let user = await User.findOne({
-            where: {
-                username: req.usr.username,
-            }
-        })
-        let post = await Post.findOne({
-            where: {
-                id: req.params.id,
-            }
-        })
-
-        if (!(user.dataValues.admin || (post.dataValues.userID === req.usr.username))) {
-            return res.status(401).json({ msg:"not authorized" })
-        }
-    } catch (e) {
-        res.status(500).json(err)
-    }
-
-    Post.findOne({
-        where: {
-            id: req.params.id
-        }
-    })
-        .then( 
-            post => {
-                post.destroy()
-                    .then(
-                        rows => res.json(rows)
-                    )
-                    .catch(
-                        err => res.status(500).json(err)
-                    )
-            }
-        )
-        .catch( 
-            err => res.status(500).json(err)
-        ) 
-})
+route.delete('/posts/:id',
+    validateParams(idParam),
+    requireOwner(Post),
+    destroyEntity)
 
 module.exports = route;

@@ -3,29 +3,29 @@ const {
     Model
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-    class Post_Tag extends Model {
-        static associate({Post, Tag}) {
+    class Like extends Model {
+        static associate({Post, User}) {
             this.belongsTo(Post, {
                 foreignKey: "postID",
             })
-            this.belongsTo(Tag, {
-                foreignKey: "tagName",
+            this.belongsTo(User, {
+                foreignKey: "userID",
             })
         }
     }
 
-    Post_Tag.init({
+    Like.init({
         postID: {
             type: DataTypes.INTEGER,
             primaryKey: true,
         },
-        tagName: {
+        userID: {
             type: DataTypes.STRING,
-            primaryKey: true
+            primaryKey: true,
         }
     }, {
         sequelize,
-        modelName: 'Post_Tag',
+        modelName: 'Like',
     });
-    return Post_Tag;
+    return Like;
 };
